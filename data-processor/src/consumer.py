@@ -3,7 +3,17 @@ import logging
 import os
 import signal
 import sys
+import tempfile
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from typing import Any
+
+from models.audio_crud import (
+    create_log_sample,
+    get_audio_by_id,
+    replace_bird_detections,
+    update_audio_analysis,
+)
 
 import redis
 
@@ -13,6 +23,8 @@ QUEUE_NAME = os.getenv("REDIS_QUEUE_NAME", "audio_tasks")
 BLOCK_TIMEOUT_SECONDS = int(os.getenv("REDIS_BLOCK_TIMEOUT_SECONDS", "5"))
 
 shutdown_requested = False
+SRC_DIR = Path(__file__).resolve().parent
+UTILS_DIR = SRC_DIR / "utils"
 
 
 def print_status(message: str) -> None:
@@ -42,10 +54,128 @@ def parse_message(raw_message: bytes) -> Any:
         return message
 
 
+def load_class_from_file(file_path: Path, class_name: str) -> type:
+    spec = spec_from_file_location(file_path.stem.replace("-", "_"), file_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"No se pudo cargar modulo desde {file_path}")
+
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return getattr(module, class_name)
+
+
+def get_sound_classifier_class() -> type:
+    return load_class_from_file(
+        UTILS_DIR / "sound-especs-clasify.py",
+        "SoundSpecsClassifier",
+    )
+
+
+def get_bird_classifier_class() -> type:
+    return load_class_from_file(
+        UTILS_DIR / "bird-clasify.py",
+        "ClassifyBirds",
+    )
+
+
+def write_audio_file(audio: dict[str, Any]) -> Path:
+    audio_file = audio.get("audio_file")
+    if audio_file is None:
+        raise ValueError(f"El audio {audio.get('id')} no tiene audio_file")
+
+    if isinstance(audio_file, memoryview):
+        audio_file = audio_file.tobytes()
+    else:
+        audio_file = bytes(audio_file)
+
+    file_extension = audio.get("file_extension") or "wav"
+    suffix = file_extension if file_extension.startswith(".") else f".{file_extension}"
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
+        temp_file.write(audio_file)
+        return Path(temp_file.name)
+
+
+def safe_create_log_sample(**kwargs: Any) -> None:
+    try:
+        create_log_sample(**kwargs)
+    except Exception:
+        logging.exception("Failed to create log_sample")
+
+
 def process_message(message: Any) -> None:
     print_status(f"processing message: {message}")
     logging.info("Processing message: %s", message)
-    # Add audio processing logic here.
+
+    if not isinstance(message, dict):
+        raise ValueError(f"Mensaje invalido: {message}")
+
+    audio_id = message.get("audio_id")
+    if not audio_id:
+        raise ValueError(f"Mensaje sin audio_id: {message}")
+
+    safe_create_log_sample(
+        id_audio=audio_id,
+        track=1,
+        payload={"event": "job_received", "message": message},
+    )
+
+    audio = get_audio_by_id(audio_id)
+    if audio is None:
+        error = f"No existe audio con id {audio_id}"
+        safe_create_log_sample(
+            id_audio=audio_id,
+            track=2,
+            payload={"event": "audio_not_found"},
+            error=error,
+        )
+        raise LookupError(error)
+
+    temp_audio_path = write_audio_file(audio)
+
+    try:
+        SoundSpecsClassifier = get_sound_classifier_class()
+        sound_results = SoundSpecsClassifier(str(temp_audio_path)).classify()
+        ClassifyBirds = get_bird_classifier_class()
+        bird_classifier = ClassifyBirds(str(temp_audio_path))
+        bird_classifier.classify()
+        bird_results = bird_classifier.get_results()
+        bird_names = [
+            result.get("common_name") or result.get("species")
+            for result in bird_results
+            if result.get("common_name") or result.get("species")
+        ]
+
+        update_audio_analysis(
+            audio_id,
+            audio_category=sound_results["noise_type"],
+            decibels=sound_results["decibels"],
+            duration=sound_results["duration"],
+            avg_frequency=sound_results["avg_frequency"],
+        )
+        replace_bird_detections(audio_id, bird_names)
+
+        safe_create_log_sample(
+            id_audio=audio_id,
+            id_device=audio.get("id_device"),
+            track=3,
+            payload={
+                "event": "audio_processed",
+                "sound": sound_results,
+                "birds": bird_results,
+            },
+        )
+    except Exception as exc:
+        safe_create_log_sample(
+            id_audio=audio_id,
+            id_device=audio.get("id_device"),
+            track=4,
+            payload={"event": "audio_processing_failed"},
+            error=str(exc),
+        )
+        raise
+    finally:
+        temp_audio_path.unlink(missing_ok=True)
 
 
 def create_redis_client(redis_url: str = REDIS_URL) -> redis.Redis:
@@ -78,8 +208,6 @@ def consume(
 
         _queue, raw_message = item
         message = parse_message(raw_message)
-        print_status(f"message received from '{queue_name}': {message}")
-
         try:
             process_message(message)
             processed_messages += 1

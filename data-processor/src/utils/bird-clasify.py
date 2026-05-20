@@ -43,7 +43,7 @@ class ClassifyBirds:
       
 # Ejemplo de uso
 if __name__ == "__main__":
-    audio_file = "queltehue.wav"
+    audio_file = "../../test/queltehue.wav"
     classifier = ClassifyBirds(audio_file)
     classifier.classify()
     results = classifier.get_results()

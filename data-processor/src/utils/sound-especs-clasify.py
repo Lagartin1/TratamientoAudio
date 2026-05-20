@@ -1,8 +1,14 @@
 import librosa
 import numpy as np
 import os
+import csv
 
 class SoundSpecsClassifier:
+    YAMNET_MODEL_URL = "https://tfhub.dev/google/yamnet/1"
+    _yamnet_model = None
+    _yamnet_class_names = None
+    _tensorflow = None
+
     def __init__(self, audio_file):
         """
         Inicializa el clasificador con la ruta del archivo de audio.
@@ -11,8 +17,41 @@ class SoundSpecsClassifier:
         if not os.path.exists(self.audio_file):
             raise FileNotFoundError(f"El archivo {self.audio_file} no existe.")
             
-        # Cargamos el audio usando librosa
+        # Cargamos el audio original para calcular especificaciones del archivo.
         self.y, self.sr = librosa.load(audio_file, sr=None)
+
+    @classmethod
+    def _load_yamnet(cls):
+        """
+        Carga YAMNet 1 desde TensorFlow Hub una sola vez por proceso.
+        """
+        if (
+            cls._yamnet_model is not None
+            and cls._yamnet_class_names is not None
+            and cls._tensorflow is not None
+        ):
+            return cls._yamnet_model, cls._yamnet_class_names, cls._tensorflow
+
+        try:
+            import tensorflow as tf
+            import tensorflow_hub as hub
+        except ImportError as exc:
+            raise ImportError(
+                "YAMNet requiere tensorflow, tensorflow-hub y setuptools. "
+                f"Ejecuta: pip install -r requirements.txt. Detalle: {exc}"
+            ) from exc
+
+        model = hub.load(cls.YAMNET_MODEL_URL)
+        class_map_path = model.class_map_path().numpy().decode("utf-8")
+
+        with open(class_map_path, newline="", encoding="utf-8") as class_map:
+            reader = csv.DictReader(class_map)
+            class_names = [row["display_name"] for row in reader]
+
+        cls._yamnet_model = model
+        cls._yamnet_class_names = class_names
+        cls._tensorflow = tf
+        return model, class_names, tf
 
     def get_decibels(self):
         """
@@ -26,44 +65,81 @@ class SoundSpecsClassifier:
             return float(np.mean(db))
         return -100.0  # Silencio total
 
+    def get_duration(self):
+        """
+        Retorna la duracion del audio en segundos.
+        """
+        return float(librosa.get_duration(y=self.y, sr=self.sr))
+
+    def get_avg_frequency(self):
+        """
+        Calcula la frecuencia promedio usando el centroide espectral.
+        """
+        centroid = librosa.feature.spectral_centroid(y=self.y, sr=self.sr)
+        return float(np.mean(centroid))
+
     def get_noise_type(self):
         """
-        Clasifica el tipo de ruido basándose en la planicidad espectral y el centroide.
+        Clasifica el sonido usando YAMNet 1.
         """
-        # Flatness espectral (cercano a 1 es ruido blanco, cercano a 0 es tonal)
-        flatness = np.mean(librosa.feature.spectral_flatness(y=self.y))
-        
-        # Centroide espectral ("centro de masa" de las frecuencias)
-        centroid = np.mean(librosa.feature.spectral_centroid(y=self.y, sr=self.sr))
+        prediction = self.get_yamnet_prediction()
+        return prediction["label"]
 
-        if flatness > 0.05:
-            return "Ruido Blanco / Banda Ancha"
-        elif centroid < 1000:
-            return "Graves / Retumbo (Baja Frecuencia)"
-        elif centroid > 4000:
-            return "Agudos / Siseo (Alta Frecuencia)"
-        else:
-            return "Tonal / Rango Medio"
+    def get_yamnet_prediction(self, top_k=5):
+        """
+        Retorna la predicción principal de YAMNet y las mejores clases detectadas.
+        """
+        model, class_names, tf = self._load_yamnet()
+
+        waveform, _ = librosa.load(self.audio_file, sr=16000, mono=True)
+        waveform = tf.convert_to_tensor(waveform, dtype=tf.float32)
+
+        scores, _embeddings, _spectrogram = model(waveform)
+        mean_scores = np.mean(scores.numpy(), axis=0)
+        top_indices = mean_scores.argsort()[-top_k:][::-1]
+
+        top_predictions = [
+            {
+                "label": class_names[index],
+                "confidence": float(mean_scores[index]),
+            }
+            for index in top_indices
+        ]
+
+        return {
+            "label": top_predictions[0]["label"],
+            "confidence": top_predictions[0]["confidence"],
+            "top_predictions": top_predictions,
+        }
 
     def classify(self):
         """
         Retorna un diccionario con las especificaciones calculadas.
         """
+        yamnet_prediction = self.get_yamnet_prediction()
         return {
             "decibels": self.get_decibels(),
-            "noise_type": self.get_noise_type(),
+            "noise_type": yamnet_prediction["label"],
+            "yamnet_confidence": yamnet_prediction["confidence"],
+            "yamnet_top_predictions": yamnet_prediction["top_predictions"],
+            "duration": self.get_duration(),
+            "avg_frequency": self.get_avg_frequency(),
             "sample_rate": self.sr
         }
 
 if __name__ == "__main__":
     # Prueba rápida usando el archivo queltehue.wav local
-    test_file = "queltehue.wav"
+    test_file = "../../test/videoplayback.wav"
     try:
         classifier = SoundSpecsClassifier(test_file)
         results = classifier.classify()
         print(f"Resultados para {test_file}:")
         print(f"Decibeles (dBFS): {results['decibels']:.2f} dB")
         print(f"Tipo de ruido: {results['noise_type']}")
+        print(f"Confianza YAMNet: {results['yamnet_confidence']:.4f}")
+        print(f"Top predicciones YAMNet: {results['yamnet_top_predictions']}")
+        print(f"Duracion: {results['duration']:.2f} s")
+        print(f"Frecuencia promedio: {results['avg_frequency']:.2f} Hz")
         print(f"Tasa de muestreo: {results['sample_rate']} Hz")
     except Exception as e:
         print(f"Error: {e}")
