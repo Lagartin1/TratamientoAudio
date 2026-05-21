@@ -9,7 +9,11 @@ from models.postgres_connection import db_session
 TABLE_CANDIDATES = {
     "audios": ('public."AUDIOS"', "public.audios"),
     "birds": ('public."BIRDS"', "public.birds"),
-    "log_sample": ("public.log_sample",),
+    "devices": ('public."DEVICES"', "public.devices"),
+    "locations": ('public."LOCATIONS"', "public.locations"),
+    "login": ('public."LOGIN"', "public.login"),
+    "user": ('public."USER"', "public.user", 'public."user"'),
+    "log_sample": ("public.log_sample", 'public."log_sample"'),
 }
 _TABLE_CACHE: dict[str, str] = {}
 

@@ -65,10 +65,12 @@ def _insert_audio_fixture(audio_path: Path) -> dict[str, str]:
 
     with db_session() as session:
         audios_table = get_table_name(session, "audios")
+        user_table = get_table_name(session, "user")
+        devices_table = get_table_name(session, "devices")
         session.execute(
             text(
-                """
-                insert into public."user" (id, name, username, password, role)
+                f"""
+                insert into {user_table} (id, name, username, password, role)
                 values (:id, :name, :username, :password, :role)
                 """
             ),
@@ -82,8 +84,8 @@ def _insert_audio_fixture(audio_path: Path) -> dict[str, str]:
         )
         session.execute(
             text(
-                """
-                insert into public.devices (id, id_user, model, os_version)
+                f"""
+                insert into {devices_table} (id, id_user, model, os_version)
                 values (:id, :id_user, :model, :os_version)
                 """
             ),
@@ -127,6 +129,8 @@ def _delete_audio_fixture(ids: dict[str, str]) -> None:
         audios_table = get_table_name(session, "audios")
         birds_table = get_table_name(session, "birds")
         log_sample_table = get_table_name(session, "log_sample")
+        user_table = get_table_name(session, "user")
+        devices_table = get_table_name(session, "devices")
         session.execute(
             text(f"delete from {birds_table} where audio_id = :audio_id"),
             {"audio_id": ids["audio_id"]},
@@ -140,11 +144,11 @@ def _delete_audio_fixture(ids: dict[str, str]) -> None:
             {"audio_id": ids["audio_id"]},
         )
         session.execute(
-            text("delete from public.devices where id = :device_id"),
+            text(f"delete from {devices_table} where id = :device_id"),
             {"device_id": ids["device_id"]},
         )
         session.execute(
-            text('delete from public."user" where id = :user_id'),
+            text(f"delete from {user_table} where id = :user_id"),
             {"user_id": ids["user_id"]},
         )
 
