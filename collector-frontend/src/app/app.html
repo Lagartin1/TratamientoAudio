@@ -1,0 +1,45 @@
+<div class="page">
+  <section class="upload-card">
+    <header class="card-header">
+      <div class="logo-box">🎧</div>
+      <div>
+        <h1>Sound Colab</h1>
+        <p>Recolector de audio ambiental 🐦</p>
+      </div>
+    </header>
+
+    <div class="card-body">
+      <h2>Capturar Audio</h2>
+      <p class="description">
+        Adjunta una grabación del entorno (o grábala en vivo) y envíala junto a tu ubicación actual.
+      </p>
+
+      <label class="file-zone">
+        <span class="file-icon">＋</span>
+        <strong>Seleccionar archivo</strong>
+        <small>Formatos permitidos: MP3, WAV o M4A</small>
+        <input type="file" accept="audio/*" (change)="seleccionarArchivo($event)" hidden>
+      </label>
+
+      <div class="divider"><span>o también</span></div>
+
+      <app-audio-recorder (audioGrabado)="manejarAudioGrabado($event)"></app-audio-recorder>
+
+      <div *ngIf="archivoSeleccionado && audioUrl" class="preview-container">
+        <p class="file-name">
+          🎵 <strong>Archivo listo:</strong> {{ archivoSeleccionado.name }}
+        </p>
+        
+        <audio [src]="audioUrl" controls class="audio-player"></audio>
+      </div>
+      
+      <p *ngIf="latitud && longitud" class="location-ok">
+        📍 Ubicación capturada correctamente ({{ latitud.toFixed(4) }}, {{ longitud.toFixed(4) }})
+      </p>
+
+      <button class="primary-button" [disabled]="enviando" (click)="enviarAudio()">
+        {{ enviando ? 'Enviando datos...' : 'Enviar audio' }}
+      </button>
+    </div>
+  </section>
+</div>
