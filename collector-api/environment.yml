@@ -1,0 +1,14 @@
+name: tratamiento-audio-backend
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - psycopg2
+  - pip:
+      - Flask==3.0.3
+      - Flask-Cors==4.0.1
+      - Flask-SQLAlchemy==3.1.1
+      - python-dotenv==1.0.1
+      - supabase==2.5.1
+      - pytest==8.2.2
