@@ -1,6 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -19,50 +18,59 @@ import { AudioRecorder } from './components/audio-recorder/audio-recorder';
   styleUrl: './app.css'
 })
 export class App {
+  @ViewChild('audioPlayer') audioPlayer!: ElementRef<HTMLAudioElement>;
+
   private snackBar = inject(MatSnackBar);
-  private sanitizer = inject(DomSanitizer);
+  private cdr = inject(ChangeDetectorRef);
 
   archivoSeleccionado: File | null = null;
-  audioUrl: SafeUrl | null = null; // enlace para el navegador
+  audioUrl: string | null = null;
   latitud: number | null = null;
   longitud: number | null = null;
   enviando: boolean = false;
 
-
-
-  // Si el usuario selecciona un audio
   seleccionarArchivo(event: Event) {
-  const input = event.target as HTMLInputElement;
-      if (input.files && input.files.length > 0) {
-        this.actualizarArchivo(input.files[0]);
-        this.snackBar.open('Archivo cargado con éxito', 'Cerrar', { duration: 3000 });
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.actualizarArchivo(input.files[0]);
+      this.snackBar.open('Archivo cargado con éxito', 'Cerrar', { duration: 3000 });
     }
   }
 
-  //Si el usuario graba un audio
   manejarAudioGrabado(archivo: File) {
     this.actualizarArchivo(archivo);
-    this.snackBar.open('Grabación lista. Capturando ubicación...', 'Cerrar', { duration: 2000 });
   }
 
   private actualizarArchivo(archivo: File) {
-    // Si ya existía una URL previa, se libera
     this.archivoSeleccionado = null;
     this.audioUrl = null;
+    this.cdr.detectChanges();
 
-    setTimeout(() => {
+    Promise.resolve().then(() => {
       this.archivoSeleccionado = archivo;
-      
-      const urlTemporal = URL.createObjectURL(archivo);
-      this.audioUrl = this.sanitizer.bypassSecurityTrustUrl(urlTemporal);
-      
-      this.obtenerUbicacion();
-    }, 50);
-    
+      this.audioUrl = URL.createObjectURL(archivo);
+      this.cdr.detectChanges();
+
+      Promise.resolve().then(() => {
+        const audio = this.audioPlayer?.nativeElement;
+        if (!audio) return;
+
+        audio.load();
+        audio.onloadedmetadata = () => {
+          audio.onloadedmetadata = null;
+          if (audio.duration === Infinity || isNaN(audio.duration)) {
+            audio.currentTime = 1e101;
+            audio.ontimeupdate = () => {
+              audio.ontimeupdate = null;
+              audio.currentTime = 0;
+            };
+          }
+        };
+      });
+    });
   }
 
-  //obtener ubicación automáticamente
-  obtenerUbicacion() {
+  private obtenerUbicacion(callback: () => void) {
     this.latitud = null;
     this.longitud = null;
 
@@ -75,12 +83,13 @@ export class App {
       (position) => {
         this.latitud = position.coords.latitude;
         this.longitud = position.coords.longitude;
-        this.snackBar.open('📍 Ubicación sincronizada con el audio.', 'Cerrar', { duration: 3000 });
+        this.cdr.detectChanges();
+        callback();
       },
-      (error) => {
+      () => {
         this.snackBar.open('⚠️ Error: Es obligatorio activar el GPS para enviar audios.', 'Cerrar', { duration: 5000 });
       },
-      { enableHighAccuracy: true, timeout: 10000 } //alta precision
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   }
 
@@ -89,25 +98,39 @@ export class App {
       this.snackBar.open('Por favor, selecciona o graba un audio primero.', 'Cerrar', { duration: 4000 });
       return;
     }
-    if (!this.latitud || !this.longitud) {
-      this.snackBar.open('Por favor, incluye tu ubicación.', 'Cerrar', { duration: 4000 });
-      return;
-    }
 
     this.enviando = true;
-    
-    //se envía el audio con la ubicacion
-    console.log('Enviando a la API:', this.archivoSeleccionado, this.latitud, this.longitud);
-    
-  
-    setTimeout(() => {
-      this.snackBar.open('¡Audio enviado exitosamente para procesamiento!', 'Cerrar', { duration: 4000 });
-      this.enviando = false;
+    this.snackBar.open('Obteniendo ubicación...', 'Cerrar', { duration: 2000 });
 
-      this.archivoSeleccionado = null;
-      this.latitud = null;
-      this.longitud = null;
-    }, 2000);
+    this.obtenerUbicacion(() => {
+      const formData = new FormData();
+      formData.append('audio', this.archivoSeleccionado!, this.archivoSeleccionado!.name);
+      formData.append('latitude', this.latitud!.toString());
+      formData.append('longitude', this.longitud!.toString());
+      formData.append('device_model', navigator.userAgent);
+
+      fetch(`${import.meta.env['NG_APP_URL_COLLECTOR_API']}/api/upload-audio`, {
+        method: 'POST',
+        body: formData
+      })
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(() => {
+          this.snackBar.open('¡Audio enviado exitosamente!', 'Cerrar', { duration: 4000 });
+          this.archivoSeleccionado = null;
+          this.audioUrl = null;
+          this.latitud = null;
+          this.longitud = null;
+        })
+        .catch(err => {
+          console.error('Error al enviar audio:', err);
+          this.snackBar.open('Error al enviar el audio. Intenta nuevamente.', 'Cerrar', { duration: 5000 });
+        })
+        .finally(() => {
+          this.enviando = false;
+        });
+    });
   }
-
 }
