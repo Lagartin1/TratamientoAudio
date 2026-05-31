@@ -1,0 +1,13 @@
+redis==5.0.8
+pytest==8.3.2
+librosa==0.11.0
+birdnetlib
+birdnet-analyzer==2.4.0
+tensorflow>=2.16.2
+tensorflow-hub>=0.16.1
+setuptools>=69.0.0,<81.0.0
+numpy
+resampy
+soundfile
+SQLAlchemy>=2.0.0
+psycopg[binary]>=3.2.0

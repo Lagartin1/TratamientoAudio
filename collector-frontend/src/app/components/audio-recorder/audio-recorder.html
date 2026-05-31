@@ -1,0 +1,20 @@
+<div class="recorder-container">
+  <button 
+    *ngIf="!estaGrabando" 
+    type="button"
+    class="record-btn" 
+    (click)="grabarAudio()">
+    <span class="material-icons">mic</span>
+    Iniciar grabación en vivo
+  </button>
+
+  <button 
+    *ngIf="estaGrabando" 
+    type="button"
+    class="stop-btn" 
+    (click)="detenerGrabacion()">
+    <div class="pulse-ring"></div>
+    <span class="material-icons">stop</span>
+    Detener y guardar (Grabando...)
+  </button>
+</div>
