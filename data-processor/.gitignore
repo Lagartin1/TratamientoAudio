@@ -14,11 +14,13 @@ htmlcov/
 venv/
 env/
 
+test/.env*
+!test/.env.example
+
 # Local environment files
 .env
 .env.*
 !.env.example
-!test/.env
 
 # Tool caches
 .mypy_cache/
