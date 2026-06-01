@@ -13,13 +13,24 @@ class BaseConfig:
     APP_PORT = int(getenv("APP_PORT", "5000"))
     SECRET_KEY = getenv("SECRET_KEY", "change-me")
 
-    SQLALCHEMY_DATABASE_URI = getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'database.db'}")
+    _db_user = getenv("user")
+    _db_password = getenv("password")
+    _db_host = getenv("host")
+    _db_port = getenv("port", "5432")
+    _db_name = getenv("dbname", "postgres")
+
+    if _db_user and _db_password and _db_host:
+        _constructed_db_url = f"postgresql://{_db_user}:{_db_password}@{_db_host}:{_db_port}/{_db_name}"
+        SQLALCHEMY_DATABASE_URI = _constructed_db_url
+        SUPABASE_DB_URL = _constructed_db_url
+    else:
+        SQLALCHEMY_DATABASE_URI = getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'database.db'}")
+        SUPABASE_DB_URL = getenv("SUPABASE_DB_URL", getenv("DATABASE_URL"))
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     SUPABASE_URL = getenv("SUPABASE_URL")
     SUPABASE_KEY = getenv("SUPABASE_KEY")
-    # Some code expects SUPABASE_DB_URL (database connection string for Supabase).
-    SUPABASE_DB_URL = getenv("SUPABASE_DB_URL", getenv("DATABASE_URL"))
 
     AUTH_REQUIRED = getenv("AUTH_REQUIRED", "false").lower() == "true"
     CORS_ORIGINS = getenv("CORS_ORIGINS", "*").split(",")
