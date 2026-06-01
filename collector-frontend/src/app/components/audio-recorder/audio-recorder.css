@@ -1,0 +1,30 @@
+.recorder-container {
+  width: 100%;
+  margin: 20px 0;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.record-btn, .stop-btn {
+  width: 100%;
+  min-height: 50px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 16px;
+  border: none;
+}
+
+.record-btn {
+  background-color: #3b82f6 !important; 
+  color: white !important;
+}
+
+.stop-btn {
+  background-color: #ef4444 !important;
+  color: white !important;
+}

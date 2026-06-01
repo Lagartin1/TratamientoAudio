@@ -1,0 +1,9 @@
+services:
+  backend-core:
+    build: .
+    container_name: backend-core
+    ports:
+      - "4001:4001"
+    env_file:
+      - .env
+    restart: unless-stopped
