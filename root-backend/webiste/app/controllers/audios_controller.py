@@ -2,7 +2,7 @@ import base64
 
 from flask import request
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload, joinedload # <-- Importar estrategias de carga
+from sqlalchemy.orm import selectinload, joinedload, defer
 
 from webiste.app.extensions import db
 from webiste.app.helpers.responses import error_response, success_response
@@ -27,10 +27,10 @@ def _summary(audio: Audio) -> dict:
 def list_audios():
     category = request.args.get("category")
     
-    # Aplicar eager loading para traer las relaciones pre-cargadas
     stmt = select(Audio).options(
+        defer(Audio.audio_file),
         selectinload(Audio.birds),
-        joinedload(Audio.location_ref)
+        joinedload(Audio.location_ref),
     )
     
     if category:

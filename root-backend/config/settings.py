@@ -29,6 +29,11 @@ class BaseConfig:
 
     SQLALCHEMY_DATABASE_URI = _build_database_url()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = (
+        {"connect_args": {"connect_timeout": 10}}
+        if _build_database_url().startswith("postgresql")
+        else {}
+    )
 
     SUPABASE_URL = getenv("SUPABASE_URL")
     SUPABASE_KEY = getenv("SUPABASE_KEY")
