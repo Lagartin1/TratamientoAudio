@@ -88,6 +88,9 @@ export class App {
       },
       () => {
         this.snackBar.open('⚠️ Error: Es obligatorio activar el GPS para enviar audios.', 'Cerrar', { duration: 5000 });
+        this.enviando = false;
+        this.cdr.detectChanges();
+
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -130,6 +133,7 @@ export class App {
         })
         .finally(() => {
           this.enviando = false;
+          this.cdr.detectChanges();
         });
     });
   }
