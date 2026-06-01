@@ -1,0 +1,77 @@
+### 1) Root
+GET http://localhost:4000/
+
+---
+
+### 2) Health
+GET http://localhost:4000/api/health
+
+---
+
+### 3) Ping
+GET http://localhost:4000/api/ping
+
+---
+
+### 4) DB ping
+GET http://localhost:4000/ping-db
+
+---
+
+### 5) Examples - list all
+GET http://localhost:4000/api/examples
+
+---
+
+### 6) Examples - filter
+GET http://localhost:4000/api/examples?status=active
+
+---
+
+### 7) Example by ID
+GET http://localhost:4000/api/examples/1
+
+---
+
+### 8) Validate example (POST JSON)
+POST http://localhost:4000/api/examples/validate
+Content-Type: application/json
+
+{
+  "name": "Mi ejemplo"
+}
+
+---
+
+### 9) Force error
+GET http://localhost:4000/api/examples/force-error
+
+---
+
+### 10) Users - list
+GET http://localhost:4000/api/users
+
+---
+
+### 11) Create user (POST JSON)
+POST http://localhost:4000/api/users
+Content-Type: application/json
+
+{
+  "name": "Prueba",
+  "username": "prueba",
+  "password": "secret",
+  "role": "user"
+}
+
+---
+### 12) Upload audio (FIXED multipart)
+POST http://localhost:4000/api/upload-audio
+Content-Type: multipart/form-data
+
+audio: @archivo.wav
+latitude: -33.456789
+longitude: -70.123456
+id_user: 1
+model: Samsung A54
+os_version: Android 14

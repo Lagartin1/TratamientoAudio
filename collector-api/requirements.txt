@@ -1,0 +1,16 @@
+Flask==3.0.3
+Flask-Cors==4.0.1
+Flask-SQLAlchemy==3.1.1
+python-dotenv==1.0.1
+psycopg2-binary==2.9.9
+supabase==2.5.1
+pytest==8.2.2
+
+# Recomendados para compatibilidad y desarrollo en Windows
+wheel
+setuptools
+
+# Para desarrollo y pruebas
+requests
+python-multipart
+Werkzeug
