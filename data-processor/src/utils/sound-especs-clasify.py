@@ -62,8 +62,12 @@ class SoundSpecsClassifier:
         rms = rms[rms > 1e-10]
         if len(rms) > 0:
             db = 20 * np.log10(rms)
-            return float(np.mean(db))
-        return -100.0  # Silencio total
+            db_mean_negative = float(np.mean(db[db < 0]))
+            noise_floor = -100.0
+            # 3. Sumamos el suelo de ruido absoluto para volverlo positivo
+            db_positive = db_mean_negative - noise_floor
+            return max(0.0, db_positive)
+        return 0.0  # Silencio total
 
     def get_duration(self):
         """
