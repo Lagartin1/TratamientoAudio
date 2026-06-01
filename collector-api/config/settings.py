@@ -18,6 +18,8 @@ class BaseConfig:
 
     SUPABASE_URL = getenv("SUPABASE_URL")
     SUPABASE_KEY = getenv("SUPABASE_KEY")
+    # Some code expects SUPABASE_DB_URL (database connection string for Supabase).
+    SUPABASE_DB_URL = getenv("SUPABASE_DB_URL", getenv("DATABASE_URL"))
 
     AUTH_REQUIRED = getenv("AUTH_REQUIRED", "false").lower() == "true"
     CORS_ORIGINS = getenv("CORS_ORIGINS", "*").split(",")
