@@ -1,6 +1,8 @@
 /* Estructura base */
 body, .page {
-  background-color: #ffffff !important;
+  background:
+    radial-gradient(circle at top, rgba(213, 198, 224, 0.35), transparent 35%),
+    linear-gradient(135deg, #fbfaff 0%, #ffffff 45%, #f8f6ff 100%) !important;
 }
 
 .page {
@@ -9,108 +11,156 @@ body, .page {
   justify-content: center;
   align-items: center;
   padding: 32px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+/* Tarjeta principal */
 .upload-card {
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   background: #ffffff !important;
   border-radius: 24px;
   box-shadow:
-    0 10px 30px rgba(25, 42, 81, 0.06),
-    0 20px 60px rgba(15, 23, 42, 0.1);
+    0 18px 45px rgba(25, 42, 81, 0.10),
+    0 35px 80px rgba(150, 122, 161, 0.18);
   overflow: hidden;
-  border: 1px solid #d5c6e0 !important;
+  border: 1px solid rgba(213, 198, 224, 0.9) !important;
 }
 
-/*Encabezado*/
+/* Encabezado */
 .card-header {
-  background: #d5c6e0 !important;
-  padding: 28px 32px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #d8c4f2 0%, #eadcf5 55%, #d5c6e0 100%) !important;
+  padding: 30px 34px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  border-bottom: 1px solid #aaa1c8 !important;
+  gap: 18px;
+  border-bottom: 1px solid rgba(170, 161, 200, 0.35) !important;
+}
+
+.card-header::after {
+  content: "";
+  position: absolute;
+  right: 34px;
+  top: 50%;
+  transform: translateY(-50%);
+  
+  width: 100px;  
+  height: 48px;
+  
+  pointer-events: none;
+  opacity: 0.5;
+
+  background: linear-gradient(to top, rgba(170, 140, 205, 0.8) 0%, rgba(170, 140, 205, 0.8) 100%);
+  background-size: 6px 100%;
+  background-repeat: repeat-x;
+  
+  mask: linear-gradient(to right, #000 6px, transparent 6px);
+  mask-size: 10px 100%;
+  -webkit-mask: linear-gradient(to right, #000 6px, transparent 6px);
+  -webkit-mask-size: 10px 100%;
+
+  animation: equalizer-wave 1.2s ease-in-out infinite alternate;
 }
 
 .logo-box {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: #aaa1c8 !important;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  background: rgba(170, 161, 200, 0.75) !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  box-shadow: inset 0 2px 4px rgba(255,255,255,0.4);
+  font-size: 30px;
+  box-shadow:
+    inset 0 2px 4px rgba(255, 255, 255, 0.5),
+    0 10px 22px rgba(25, 42, 81, 0.12);
+  z-index: 1;
 }
 
 h1 {
   margin: 0;
-  font-size: 24px;
-  color: #192a51 !important;
-  font-weight: 800;
+  font-size: 28px;
+  color: #111e4d !important;
+  font-weight: 850;
+  letter-spacing: -0.5px;
 }
 
 .card-header p {
   margin: 4px 0 0;
   color: #3b4b72 !important;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
 }
 
-/*Cuerpo de la tarjeta */
+/* Cuerpo */
 .card-body {
-  padding: 32px;
+  padding: 34px 38px 36px;
 }
 
 h2 {
   text-align: center;
-  margin: 0 0 8px;
-  color: #192a51 !important;
-  font-weight: 700;
+  margin: 0 0 10px;
+  color: #111e4d !important;
+  font-weight: 800;
+  font-size: 24px;
 }
 
 .description {
   text-align: center;
-  color: #4a5568 !important;
-  margin-bottom: 24px;
-  font-size: 14px;
+  color: #526078 !important;
+  margin: 0 auto 28px;
+  font-size: 15px;
+  line-height: 1.45;
+  max-width: 410px;
 }
 
+/* Zona de archivo */
 .file-zone {
-  border: 2px dashed #967aa1 !important;
-  border-radius: 16px;
-  padding: 32px 24px;
+  border: 2px dashed #b88be0 !important;
+  border-radius: 20px;
+  padding: 34px 24px 30px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
-  background: #ffffff !important;
-  margin-bottom: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #fdfaff 100%) !important;
+  margin-bottom: 24px;
   transition: all 0.2s ease;
 }
 
 .file-zone:hover {
-  background: #fdfafb !important;
-  border-color: #192a51 !important;
+  background: #fbf6ff !important;
+  border-color: #7f55c7 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(150, 122, 161, 0.12);
 }
 
 .file-icon {
-  font-size: 32px;
-  color: #967aa1 !important;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #f1e7fb;
+  color: #8d61bd !important;
+  font-size: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .file-zone strong {
-  color: #192a51 !important;
+  color: #111e4d !important;
+  font-size: 15px;
 }
 
 .file-zone small {
-  color: #64748b !important;
+  color: #667085 !important;
+  font-size: 13px;
 }
 
+/* Divisor */
 .divider {
   display: flex;
   align-items: center;
@@ -118,71 +168,77 @@ h2 {
   margin: 24px 0;
   color: #64748b !important;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.divider::before, .divider::after {
-  content: '';
+.divider::before,
+.divider::after {
+  content: "";
   flex: 1;
   border-bottom: 1px solid #e2e8f0;
 }
 
-.divider:not(:empty)::before { margin-right: 1em; }
-.divider:not(:empty)::after { margin-left: 1em; }
+.divider:not(:empty)::before {
+  margin-right: 1em;
+}
 
-/* Botones */
+.divider:not(:empty)::after {
+  margin-left: 1em;
+}
+
+/* Botones generales */
 button.primary-button,
 button.secondary-button,
 button.record-btn,
 button.stop-btn {
   width: 100% !important;
-  height: 48px !important;
-  border-radius: 12px !important;
-  font-weight: 700 !important;
+  height: 54px !important;
+  border-radius: 14px !important;
+  font-weight: 750 !important;
   font-size: 15px !important;
   cursor: pointer !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
+  gap: 10px !important;
   transition: all 0.2s ease !important;
-  box-shadow: none !important;
   border: none;
 }
 
-/* Enviar Audio */
+/* Botón enviar */
 button.primary-button {
-  background-color: #192a51 !important;
+  background: linear-gradient(135deg, #111e4d 0%, #172a63 100%) !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(25, 42, 81, 0.15) !important;
+  box-shadow: 0 10px 24px rgba(25, 42, 81, 0.24) !important;
 }
 
 button.primary-button:hover {
-  background-color: #111e3b !important;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(25, 42, 81, 0.28) !important;
 }
 
 button.primary-button:disabled {
-  background-color: #e2e8f0 !important;
+  background: #e2e8f0 !important;
   color: #94a3b8 !important;
   box-shadow: none !important;
   cursor: not-allowed !important;
 }
 
-/* Grabador de audio*/
+/* Grabador */
 .recorder-container {
   width: 100%;
   margin: 8px 0;
 }
 
 button.record-btn {
-  background-color: #fcf8f9 !important;
-  color: #192a51 !important;
-  border: 1px dashed #aaa1c8 !important;
+  background: linear-gradient(135deg, #5b66ff 0%, #3b55dc 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(59, 85, 220, 0.22) !important;
 }
 
 button.record-btn:hover {
-  background-color: #d5c6e0 !important;
-  border-style: solid !important;
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(59, 85, 220, 0.28) !important;
 }
 
 button.stop-btn {
@@ -205,23 +261,111 @@ button.stop-btn {
   100% { transform: scale(0.9); opacity: 0; }
 }
 
-/* Feedback */
-.file-name {
-  background: #f0fdf4 !important;
-  border: 1px solid #bbf7d0 !important;
-  color: #115e59 !important;
-  padding: 12px;
-  border-radius: 12px;
-  margin-top: 14px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 600;
+@keyframes equalizer-wave {
+  0% {
+    clip-path: polygon(
+      0% 40%,  12% 20%, 25% 50%, 37% 10%, 50% 60%, 
+      62% 30%, 75% 70%, 87% 25%, 100% 45%,
+      100% 100%, 0% 100%
+    );
+  }
+  50% {
+    clip-path: polygon(
+      0% 70%,  12% 45%, 25% 20%, 37% 65%, 50% 15%, 
+      62% 80%, 75% 35%, 87% 60%, 100% 20%,
+      100% 100%, 0% 100%
+    );
+  }
+  100% {
+    clip-path: polygon(
+      0% 30%,  12% 60%, 25% 40%, 37% 25%, 50% 75%, 
+      62% 40%, 75% 20%, 87% 85%, 100% 50%,
+      100% 100%, 0% 100%
+    );
+  }
 }
 
+/* Vista previa del audio */
+.preview-container {
+  margin-top: 18px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+
+/* Fila archivo listo */
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.file-name {
+  background: linear-gradient(135deg, #ecfdf5 0%, #f5fffb 100%) !important;
+  border: 1px solid #b7f0d0 !important;
+  color: #115e59 !important;
+  padding: 13px 16px;
+  border-radius: 16px;
+  margin-top: 0 !important;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+
+.file-row .file-name {
+  flex: 1;
+  margin: 0 !important;
+}
+
+/* Botón descarga pequeño circular */
+.download-box {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #15945f;
+  border: 1px solid #d4f6e3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.12);
+  transition: all 0.18s ease;
+}
+
+.download-box:hover {
+  background: #ecfdf5;
+  transform: translateY(-1px);
+}
+
+.download-box:active {
+  transform: scale(0.94);
+}
+
+.download-box .material-icons {
+  font-size: 20px !important;
+  color: #15945f;
+}
+
+/* Audio player */
+.audio-player {
+  width: 100%;
+  height: 42px;
+  border-radius: 999px;
+  outline: none;
+}
+
+/* Ubicación */
 .location-ok {
   text-align: center;
   font-size: 14px;
-  color: #16a34a !important; 
+  color: #16a34a !important;
   font-weight: 600;
   margin-top: 12px;
 }
@@ -230,30 +374,29 @@ button.stop-btn {
   font-size: 20px !important;
 }
 
+/* Responsive */
 @media (max-width: 600px) {
-  .page { padding: 16px; }
-  .card-header, .card-body { padding: 24px; }
-}
+  .page {
+    padding: 16px;
+  }
 
-/* Vista previa del audio */
-.preview-container {
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: center;
-  width: 100%;
-}
+  .upload-card {
+    max-width: 100%;
+  }
 
-.audio-player {
-  width: 100%;
-  height: 40px;
-  border-radius: 8px;
-  outline: none;
-}
+  .card-header {
+    padding: 24px;
+  }
 
-.preview-container .file-name {
-  width: 100%;
-  margin-top: 0 !important;
-  box-sizing: border-box;
+  .card-body {
+    padding: 26px 24px 28px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .file-zone {
+    padding: 28px 18px;
+  }
 }
