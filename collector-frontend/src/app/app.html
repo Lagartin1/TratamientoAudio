@@ -23,21 +23,34 @@
 
       <div class="divider"><span>o también</span></div>
 
-      <app-audio-recorder (audioGrabado)="manejarAudioGrabado($event)"></app-audio-recorder>
+      <app-audio-recorder 
+        (audioGrabado)="manejarAudioGrabado($event)">
+      </app-audio-recorder>
 
       <div *ngIf="archivoSeleccionado && audioUrl" class="preview-container">
-        <p class="file-name">
-          🎵 <strong>Archivo listo:</strong> {{ archivoSeleccionado.name }}
-        </p>
-        
-        <audio [src]="audioUrl" controls class="audio-player"></audio>
+        <div class="file-row">
+          <p class="file-name">
+            🎵 <strong>Archivo listo:</strong> {{ archivoSeleccionado.name }}
+          </p>
+
+          <a
+            [href]="audioUrl"
+            [download]="archivoSeleccionado.name"
+            class="download-box"
+            title="Descargar audio"
+          >
+            <span class="material-icons">download</span>
+          </a>
+        </div>
+
+        <audio #audioPlayer controls class="audio-player" [src]="audioUrl"></audio>
       </div>
-      
+
       <p *ngIf="latitud && longitud" class="location-ok">
-        📍 Ubicación capturada correctamente ({{ latitud.toFixed(4) }}, {{ longitud.toFixed(4) }})
       </p>
 
       <button class="primary-button" [disabled]="enviando" (click)="enviarAudio()">
+        <span class="material-icons">send</span>
         {{ enviando ? 'Enviando datos...' : 'Enviar audio' }}
       </button>
     </div>
