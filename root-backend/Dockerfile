@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 4001
 
-CMD ["gunicorn", "--bind", "0.0.0.0:4001", "--workers", "2", "main:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:4001", "--workers", "2", "--timeout", "120", "main:app"]
