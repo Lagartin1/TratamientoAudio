@@ -1,0 +1,166 @@
+services:
+  nginx:
+    build:
+      context: ./nginx
+    container_name: tratamiento-audio-nginx
+    restart: unless-stopped
+    depends_on:
+      - public-frontend
+      - collector-frontend
+      - root-backend
+      - collector-api
+    ports:
+      - "${NGINX_HTTP_PORT}:80"
+      - "${NGINX_HTTPS_PORT}:443"
+    networks:
+      - sound-colab-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: tratamiento-audio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./collector-api/sql/init_schema.sql:/docker-entrypoint-initdb.d/01-init-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sound-colab-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: tratamiento-audio-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sound-colab-network
+
+  root-backend:
+    build:
+      context: ./root-backend
+    container_name: tratamiento-audio-root-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      FLASK_ENV: ${FLASK_ENV}
+      APP_HOST: ${APP_HOST}
+      APP_PORT: 4001
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: ${ROOT_DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS}
+      AUTH_REQUIRED: ${AUTH_REQUIRED}
+      CORS_ORIGINS: ${ROOT_CORS_ORIGINS}
+    expose:
+      - "4001"
+    networks:
+      - sound-colab-network
+
+  collector-api:
+    build:
+      context: ./collector-api
+    container_name: tratamiento-audio-collector-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      FLASK_ENV: ${FLASK_ENV}
+      APP_HOST: ${APP_HOST}
+      APP_PORT: ${COLLECTOR_API_INTERNAL_PORT}
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: ${COLLECTOR_DATABASE_URL}
+      AUTH_REQUIRED: ${AUTH_REQUIRED}
+      CORS_ORIGINS: ${COLLECTOR_CORS_ORIGINS}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_QUEUE: ${REDIS_QUEUE}
+    expose:
+      - "${COLLECTOR_API_INTERNAL_PORT}"
+    command:
+      - gunicorn
+      - -w
+      - "4"
+      - -b
+      - 0.0.0.0:${COLLECTOR_API_INTERNAL_PORT}
+      - main:app
+    networks:
+      - sound-colab-network
+
+  data-processor:
+    build:
+      context: ./data-processor
+    container_name: tratamiento-audio-data-processor
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_URL: ${REDIS_URL}
+      REDIS_QUEUE_NAME: ${REDIS_QUEUE}
+      REDIS_BLOCK_TIMEOUT_SECONDS: ${REDIS_BLOCK_TIMEOUT_SECONDS}
+      LOG_LEVEL: ${LOG_LEVEL}
+      SUPABASE_DB_URL: ${PROCESSOR_DATABASE_URL}
+      POSTGRES_SSLMODE: ${POSTGRES_SSLMODE}
+    networks:
+      - sound-colab-network
+
+  collector-frontend:
+    build:
+      context: ./collector-frontend
+      args:
+        NG_APP_URL_COLLECTOR_API: ${NG_APP_URL_COLLECTOR_API}
+        COLLECTOR_FRONTEND_BASE_HREF: ${COLLECTOR_FRONTEND_BASE_HREF}
+    container_name: tratamiento-audio-collector-frontend
+    restart: unless-stopped
+    depends_on:
+      - collector-api
+    expose:
+      - "80"
+    networks:
+      - sound-colab-network
+
+  public-frontend:
+    build:
+      context: ./public-frontend
+      args:
+        NG_APP_API_URL: ${NG_APP_API_URL}
+    container_name: tratamiento-audio-public-frontend
+    restart: unless-stopped
+    depends_on:
+      - root-backend
+    expose:
+      - "80"
+    networks:
+      - sound-colab-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  sound-colab-network:
+    external: true
