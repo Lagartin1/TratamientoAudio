@@ -75,16 +75,22 @@ def register_middlewares(app):
         return response
 
     def _resolve_actor():
-        """Identifica al usuario del request: g.current_user o el Bearer token.
+        """Identifica al usuario del request: g.current_user, Bearer token
+        o el query param ?token= (los tags <audio> del navegador no pueden
+        enviar headers, así que el stream manda el token por URL).
 
         Decodifica el token incluso con AUTH_REQUIRED=false para que el
         historial atribuya acciones también en desarrollo.
         """
         payload = g.get("current_user")
         if not payload:
+            token = None
             auth_header = request.headers.get("Authorization", "")
             if auth_header.startswith("Bearer "):
                 token = auth_header.removeprefix("Bearer ").strip()
+            elif request.args.get("token"):
+                token = request.args["token"]
+            if token:
                 try:
                     payload = jwt.decode(
                         token,
