@@ -6,11 +6,23 @@ Sistema distribuido para recolección, procesamiento y visualización de audios 
 
 | Componente           | Descripción                                      | Puerto |
 |----------------------|--------------------------------------------------|--------|
-| `root-backend`       | API principal (autenticación, consultas públicas)| 4001   |
+| `nginx`              | Punto de entrada, HTTPS y load balancer de APIs  | 80/443 |
+| `root-backend`       | API principal (auth, consultas, streaming, logs) | 4001   |
 | `collector-api`      | API para recepción de audios desde dispositivos  | 4000   |
 | `collector-frontend` | UI para dispositivos colectores                  | 4200   |
-| `public-frontend`    | UI pública con mapa de calor de detecciones      | 4201   |
+| `public-frontend`    | UI pública: mapa de ruido y lista de audios      | 4201   |
 | `data-processor`     | Worker que procesa audios y detecta aves         | 5000   |
+
+**Flujo de datos:** el `collector-frontend` sube un audio al `collector-api`, que lo guarda y encola un trabajo en Redis; el `data-processor` consume la cola, analiza el audio (categoría, decibeles, aves) y persiste los resultados; el `root-backend` sirve esos datos al `public-frontend`, donde se visualizan y escuchan.
+
+## Funcionalidades principales
+
+- **Autenticación** contra Supabase Auth con JWT propio (login, registro, logout). El registro público siempre crea usuarios con rol `user`; los admin se crean via `flask seed-db` o directamente en la BD.
+- **Streaming de audio**: `GET /api/audios/<id>/stream` sirve el binario con su MIME type para reproducir directamente en el navegador.
+- **Mapa de ruido** (public-frontend): manchas de calor geográficas (ancladas en metros reales, consistentes en todo nivel de zoom) con color e intensidad según los decibeles medidos, pines con popup y reproductor integrado.
+- **Vista de lista** (public-frontend): audios ordenados por fecha con reproductor compacto, metadatos (categoría, duración, especie, coordenadas) y botón "ver en mapa" que abre un modal centrado en el pin.
+- **Logs de auditoría**: la tabla `USER_LOGS` registra automáticamente cada acción de usuario (quién, qué endpoint, cuándo, desde qué IP), incluyendo la reproducción de audios. Consultable en `GET /api/logs` (con filtros `limit`, `user_id`, `action`).
+- **Load balancer**: `root-backend` y `collector-api` corren con 3 réplicas cada una; nginx reparte la carga (`least_conn`) y saca de rotación las réplicas caídas con reintento automático.
 
 ## Requisitos previos
 
@@ -33,13 +45,19 @@ docker compose up --build -d
 
 Esto levantará automáticamente:
 
+* **nginx** (puerto 80/443) — punto de entrada y load balancer
 * **PostgreSQL** (puerto 5432) — base de datos principal
 * **Redis** (puerto 6379) — cola de tareas
-* **root-backend** (puerto 4001) — API principal
-* **collector-api** (puerto 4000) — API de recepción de audios
-* **data-processor** (puerto 5000) — worker para procesar audios
-* **collector-frontend** (puerto 4200) — UI para colectores
-* **public-frontend** (puerto 4201) — UI pública
+* **root-backend** (×3 réplicas) — API principal
+* **collector-api** (×3 réplicas) — API de recepción de audios
+* **data-processor** — worker para procesar audios
+* **collector-frontend** — UI para colectores
+* **public-frontend** — UI pública
+
+> Nota: las APIs corren replicadas detrás de nginx, por lo que ya no tienen
+> `container_name` fijo ni puertos publicados directamente. Si recreas las
+> réplicas (`--force-recreate`), reinicia también nginx para que re-resuelva
+> sus IPs: `docker compose restart nginx`.
 
 ### Verificar que todo está corriendo
 
@@ -56,21 +74,26 @@ docker compose logs -f root-backend
 
 ### Configuración inicial
 
-Para que el sistema funcione correctamente, es necesario crear un usuario genérico en la base de datos. Accede a la base de datos PostgreSQL y ejecuta:
-
-```sql
--- Crear usuario genérico si no existe
-INSERT INTO users (email, name, role, created_at)
-VALUES ('generic@example.com', 'Usuario Genérico', 'user', NOW())
-ON CONFLICT DO NOTHING;
-```
-
-Alternativamente, puedes usar el endpoint de la API para crear el usuario:
+Crear las tablas (incluida `USER_LOGS` para los logs de auditoría). El script es idempotente, se puede correr sobre una base existente sin riesgo:
 
 ```bash
-curl -X POST http://localhost:4001/auth/register \
+# Dentro del contenedor del root-backend (o localmente con el .env cargado)
+docker compose exec root-backend flask --app bootstrap:create_app init-sql
+```
+
+Opcionalmente, poblar con datos de prueba (crea el usuario admin y audios de ejemplo):
+
+```bash
+docker compose exec root-backend flask --app bootstrap:create_app seed-db
+# Credenciales: admin@soundcolab.local / admin123
+```
+
+También puedes registrar un usuario desde la API (siempre con rol `user`):
+
+```bash
+curl -X POST http://localhost/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"generic@example.com","name":"Usuario Genérico","password":"changeme"}'
+  -d '{"email":"generic@example.com","name":"Usuario Genérico","username":"generic","password":"changeme"}'
 ```
 
 ### Acceder a los servicios
@@ -319,16 +342,22 @@ NG_APP_URL_COLLECTOR_API=http://localhost:4000
 
 ### 5. public-frontend
 
-UI pública con mapa de calor de detecciones de aves.
+UI pública: login, mapa de ruido con calor por decibeles y vista de lista con reproductor de audios.
 
 ```bash
 cd public-frontend
 npm install
-# Configurar variables de entorno si aplica
+cp .env.example .env   # o crear .env con la variable de abajo
 npm start
 ```
 
 Disponible en `http://localhost:4201`.
+
+**Variables de entorno (`public-frontend/.env`)**
+
+```env
+NG_APP_API_URL=http://localhost:4001
+```
 
 ---
 
